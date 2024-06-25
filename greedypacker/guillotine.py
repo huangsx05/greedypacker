@@ -26,15 +26,15 @@ class Guillotine:
     def __init__(self, x: int = 8,
                  y: int = 4,
                  rotation: bool = True,
-                 heuristic: str = 'best_area_fit',
+                 heuristic: str = 'best_area_fit',  # 决定item放置位置的策略
                  rectangle_merge: bool = True,
                  split_heuristic: str = 'default') -> None:
-        self.x = x
-        self.y = y
+        self.x = x  # plate width
+        self.y = y  # plate height
         self.area = self.x * self.y
-        self.free_area = self.x * self.y
-        self.rMerge = rectangle_merge
-        self.split_heuristic = split_heuristic
+        self.free_area = self.x * self.y  # 空白面积
+        self.rMerge = rectangle_merge  # 是否合并切分的矩形
+        self.split_heuristic = split_heuristic  # 决定L shape切分方向的策略
 
         if heuristic == 'best_area':
             self._score = scoreBAF

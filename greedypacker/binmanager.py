@@ -41,9 +41,10 @@ class BinManager:
         self.pack_algo = pack_algo
         self.heuristic = heuristic
 
+        # 这里无关紧要，因为LO的目标是只有一个bin
         if bin_algo == 'bin_best_fit':
             self.bin_sel_algo = self._bin_best_fit
-        elif bin_algo == 'bin_first_fit':
+        elif bin_algo == 'bin_first_fit':  # 使用这个，更简单
             self.bin_sel_algo =  self._bin_first_fit
         self.heuristic = heuristic
         self.algorithm = pack_algo
@@ -55,7 +56,7 @@ class BinManager:
         self.rectangle_merge = rectangle_merge
         self.wastemap = wastemap
 
-        defaultBin = self._bin_factory() 
+        defaultBin = self._bin_factory()  # 创建bin, 对应一种算法，比如guillotine
         self.bins = [defaultBin]
 
     def items_sort(self): 
@@ -147,7 +148,7 @@ class BinManager:
             result = binn.insert(item, self.heuristic)
             if result:
                 break
-        if not result:
+        if not result:  # 新建bin
             self.bins.append(self._bin_factory())
             self.bins[-1].insert(item, self.heuristic)
 
@@ -188,5 +189,5 @@ class BinManager:
         """
         Loop over all items and attempt insertion
         """
-        for item in self.items:
+        for item in self.items:  # item按照预定排序依次被放置
             self.bin_sel_algo(item)
