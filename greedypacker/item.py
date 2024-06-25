@@ -15,10 +15,11 @@ class Item:
         self.area = self.width * self.height
         self.rotated = False
         self.id = 0
+        self.rotation = rotation
 
 
     def __repr__(self):
-        return 'Item(width=%r, height=%r, x=%r, y=%r)' % (self.width, self.height, self.x, self.y)
+        return 'Item(width=%r, height=%r, x=%r, y=%r, id=%r)' % (self.width, self.height, self.x, self.y, self.id)
 
 
     def rotate(self) -> None:

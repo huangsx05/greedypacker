@@ -107,6 +107,38 @@ class BinManager:
         elif self.sorting_heuristic == 'DESCRATIO':
             key = lambda el: el.width/el.height
             self.items.sort(key=key, reverse=True)
+        # By Item Size Count Descending
+        elif self.sorting_heuristic == 'DESCCOUNT':
+            from collections import Counter
+            item_size_list = [(item.width,item.height) for item in self.items]
+            item_size_count = Counter(item_size_list)
+            # print(f"item_size_count = {item_size_count}")
+            sorted_item_sizes = sorted(item_size_count.items(), key=lambda x: x[1], reverse=True)
+            # print(f"sorted_item_sizes = {sorted_item_sizes}")
+            sorted_items = []
+            for item_size in sorted_item_sizes:
+                cur_items = [i for i in self.items if i.width==item_size[0][0] and i.height==item_size[0][1]]
+                sorted_items+=cur_items
+            self.items = sorted_items    
+            # print(self.items)     
+        elif self.sorting_heuristic == 'MAXCOUNT_DESCWIDTHI':
+            from collections import Counter
+            item_size_list = [(item.width,item.height) for item in self.items]
+            item_size_count = Counter(item_size_list)
+            print(f"item_size_count = {item_size_count}")
+            sorted_item_sizes_by_count = sorted(item_size_count.items(), key=lambda x: x[1], reverse=True)
+            sorted_item_sizes_by_count = [i[0] for i in sorted_item_sizes_by_count]
+            max_item_size = sorted_item_sizes_by_count[0]
+            other_item_sizes = [i for i in sorted_item_sizes_by_count if i!=max_item_size]
+            other_item_sizes = sorted(other_item_sizes, key=lambda x: (x[1], x[0]), reverse=True)
+            sorted_item_sizes = [max_item_size] + other_item_sizes
+            print(f"sorted_item_sizes = {sorted_item_sizes}")
+            sorted_items = []
+            for item_size in sorted_item_sizes:
+                cur_items = [i for i in self.items if i.width==item_size[0] and i.height==item_size[1]]
+                sorted_items+=cur_items
+            self.items = sorted_items  
+            # print(self.items)  
         # Default to DESCA
         else:
             key = lambda el: el.width*el.height
@@ -128,7 +160,7 @@ class BinManager:
             return guillotine.Guillotine(self.bin_width, self.bin_height, self.rotation, self.heuristic,
                                          self.rectangle_merge, self.split_heuristic)
         elif self.algorithm == 'shelf':
-            return shelf.Sheet(self.bin_width, self.bin_height, self.rotation, self.wastemap, self.heuristic)
+            return shelf.Sheet(self.bin_width, self.bin_height, self.rotation, self.wastemap, self.heuristic)  # 这里把rotation传给sheet
 
         elif self.algorithm == 'maximal_rectangle':
             return maximal_rectangles.MaximalRectangle(self.bin_width, self.bin_height, self.rotation, self.heuristic)
@@ -155,14 +187,14 @@ class BinManager:
     def _bin_best_fit(self, item: item.Item) -> bool:
         """
         Insert into the bin that best fits the item
+        对一个item做insert选择
         """
-
         # Ensure item can theoretically fit the bin
         item_fits = False
         if (item.width <= self.bin_width and 
             item.height <= self.bin_height):
             item_fits = True
-        if (self.rotation and 
+        if (self.rotation and  # 这里的rotation是指sheet是否能旋转 
             (item.height <= self.bin_width and 
             item.width <= self.bin_height)):
             item_fits = True
@@ -170,13 +202,14 @@ class BinManager:
             raise ValueError("Error! item too big for bin")
 
         scores = []
-        for binn in self.bins:
-            s, _, _ = binn._find_best_score(item)[:3]
-            if s is not None:
-                scores.append((s, binn))
+        for binn in self.bins:  # shelf.Sheet(self.bin_width, self.bin_height, self.rotation, self.wastemap, self.heuristic)
+            score, shelf, is_rotated = binn._find_best_score(item)[:3]
+            if score is not None:
+                scores.append((score, binn, shelf, is_rotated))
         if scores:
-            _, best_bin = min(scores, key=lambda x: x[0])
-            return best_bin.insert(item)
+            _, best_bin, best_shelf, best_rotated = min(scores, key=lambda x: x[0])
+            return best_bin.insert(item,
+                                   heuristic = 'best_width')  # ???
 
         new_bin = self._bin_factory()
         new_bin.insert(item, self.heuristic)

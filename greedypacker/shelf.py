@@ -30,8 +30,12 @@ class Shelf:
 
 
     def insert(self, item: Item, rotation: bool=True) -> bool:
+        """
+        return: bool, item是否插入shelf成功
+        """
+        # print(f"shelf insert, rotation = {rotation}")
         if item.width <= self.available_width and item.height <= self.y:
-            item.x, item.y = (self.x - self.available_width, self.vertical_offset)
+            item.x, item.y = (self.x - self.available_width, self.vertical_offset)  # 左下角点坐标
             self.items.append(item)
             self.available_width -= item.width
             self.area = self.available_width * self.y
@@ -91,9 +95,14 @@ class Sheet:
 
 
     def _create_shelf(self, item: Item) -> bool:
+        # 决定是否旋转
         if (self.rotation and item.height > item.width and
            item.height < self.x and item.width < self.y):
             item.rotate()
+        if (item.rotation and item.height > item.width and
+           item.height < self.x and item.width < self.y):
+            item.rotate()
+        # 根据旋转之后的情况创建新的shelf
         if item.height <= self.available_height:
             v_offset = self.y - self.available_height
             new_shelf = Shelf(self.x, item.height, v_offset)
@@ -106,12 +115,18 @@ class Sheet:
         return False
 
 
+    # def _item_fits_shelf(self, item: Item, shelf: Shelf, rotation: bool = False) -> bool:
+    #     if ((item.width <= shelf.available_width and item.height <= shelf.y) or
+    #        (rotation and item.height <= shelf.available_width and item.width <= shelf.y)):
+    #         return True
+    #     return False
+
     def _item_fits_shelf(self, item: Item, shelf: Shelf, rotation: bool = False) -> bool:
-        if ((item.width <= shelf.available_width and item.height <= shelf.y) or
-           (rotation and item.height <= shelf.available_width and item.width <= shelf.y)):
+        if rotation==False and (item.width <= shelf.available_width and item.height <= shelf.y):
+            return True
+        if rotation==True and (item.height <= shelf.available_width and item.width <= shelf.y):
             return True
         return False
-
 
     @staticmethod
     def _rotate_to_shelf(item: Item, shelf: Shelf) -> bool:
@@ -179,25 +194,37 @@ class Sheet:
         needs to be rotated. If the bin has no shelves
         and the item fits the available space, then
         give it a max score (0) with no shelves.
+        在一个sheet中找item的best shelf
         """
-        shelves = []
+        shelves = []  # candidate shelves
         if not self.shelves:
             return 0, None, False
-        for shelf in self.shelves:
-            if self._item_fits_shelf(item, shelf):
-                shelves.append((self._score(shelf, item, self), shelf, False))
-            if self._item_fits_shelf(item, shelf, rotation=True):
-                shelves.append((self._score(shelf, item, self), shelf, True))
+        # for shelf in self.shelves:
+        #     if self._item_fits_shelf(item, shelf):
+        #         shelves.append((self._score(shelf, item, self), shelf, False))
+        #     if self._item_fits_shelf(item, shelf, rotation=True):
+        #         shelves.append((self._score(shelf, item, self), shelf, True))
 
-        # Give max score if item fits sheet but there are no shelves
+        # add into candidate shelves based on whether item is rotatable
+        for shelf in self.shelves:
+            if item.rotation == False:
+                if self._item_fits_shelf(item, shelf, rotation=False):
+                    shelves.append((self._score(shelf, item, self), shelf, False))              
+            else:
+                if self._item_fits_shelf(item, shelf, rotation=False):
+                    shelves.append((self._score(shelf, item, self), shelf, False))
+                if self._item_fits_shelf(item, shelf, rotation=True):
+                    shelves.append((self._score(shelf, item, self), shelf, True))
+
+        # Give best score if item fits sheet but there are no shelves
         if not shelves and self.available_height >= item.height:
             shelves.append(((0, 0), None, False))
-        if not shelves and self.available_height >= item.width and self.rotation:
-            shelves.append(((0, 0), None, True))
+        if not shelves and self.available_height >= item.width and (self.rotation or item.rotation):
+            shelves.append(((0, 0), None, True))  # True means rotated
 
         try:
             _score, shelf, rot = min(shelves, key=lambda x: x[0])
-            return _score, shelf, rot
+            return _score, shelf, rot  # score, shelf, rotation
         except ValueError:
             return None, None, False
 
